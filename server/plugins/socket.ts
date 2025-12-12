@@ -117,19 +117,29 @@ function getPublicGameState(room: Room): any {
 }
 
 export default defineNitroPlugin((nitroApp) => {
-  // Port pour Socket.IO
-  // - Dev: 3002 (séparé de Nuxt sur 3000)
-  // - Render: SOCKET_PORT ou un port différent
-  const socketPort = parseInt(process.env.SOCKET_PORT || '3002')
-  
-  const io = new Server(socketPort, {
+  const io = new Server({
     cors: {
-      origin: process.env.CORS_ORIGIN || '*',
-      methods: ['GET', 'POST']
+      origin: '*',
+      methods: ['GET', 'POST'],
+      credentials: true
+    },
+    transports: ['websocket', 'polling'],
+    allowEIO3: true
+  })
+
+  // Attacher Socket.IO au serveur HTTP de Nitro
+  nitroApp.hooks.hook('request', (event) => {
+    // @ts-expect-error - accès au serveur node
+    if (!event.node.res.socket?.server._socketIoAttached) {
+      // @ts-expect-error - accès au serveur node
+      io.attach(event.node.res.socket?.server)
+      // @ts-expect-error - marquer comme attaché
+      event.node.res.socket.server._socketIoAttached = true
+      console.log('🎮 Socket.IO attached to Nitro server')
     }
   })
-  
-  console.log(`🎮 Socket.IO server running on port ${socketPort}`)
+
+  console.log('🎮 Socket.IO plugin initialized')
 
   io.on('connection', (socket) => {
     console.log(`✅ Player connected: ${socket.id}`)
