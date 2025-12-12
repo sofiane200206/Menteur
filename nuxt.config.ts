@@ -13,8 +13,10 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      // En prod sur Render, l'URL sera la même que le site (ex: https://liar.onrender.com)
-      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:3002'
+      // URL du serveur WebSocket (Render)
+      // En local: http://localhost:3001
+      // En prod: https://liar-websocket.onrender.com
+      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'
     }
   },
 

@@ -49,17 +49,13 @@ const error = ref<string>('')
 
 export function useMultiplayer() {
 
-  // Connexion au serveur
+  // Connexion au serveur WebSocket
   function connect() {
     if (socket.value?.connected) return
 
-    // En production, utiliser la même origine (pas besoin de port séparé)
-    // En dev, utiliser localhost:3002
     const config = useRuntimeConfig()
-    const isDev = process.dev
-    const socketUrl = isDev 
-      ? 'http://localhost:3002' 
-      : (config.public.socketUrl || window.location.origin)
+    // Utiliser l'URL du serveur WebSocket depuis la config
+    const socketUrl = config.public.socketUrl as string
     
     console.log('🔌 Connecting to Socket.IO:', socketUrl)
     
