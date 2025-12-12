@@ -24,11 +24,6 @@ export default defineNuxtConfig({
     '/': { prerender: false } // Désactiver le prerender pour le jeu dynamique
   },
 
-  // Désactiver le serveur Nitro standalone (on utilise server.mjs)
-  nitro: {
-    preset: 'node-server'
-  },
-
   compatibilityDate: '2025-01-15',
 
   eslint: {
