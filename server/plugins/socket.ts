@@ -117,14 +117,19 @@ function getPublicGameState(room: Room): any {
 }
 
 export default defineNitroPlugin((nitroApp) => {
-  const io = new Server(3002, {
+  // Port pour Socket.IO
+  // - Dev: 3002 (séparé de Nuxt sur 3000)
+  // - Render: SOCKET_PORT ou un port différent
+  const socketPort = parseInt(process.env.SOCKET_PORT || '3002')
+  
+  const io = new Server(socketPort, {
     cors: {
-      origin: '*',
+      origin: process.env.CORS_ORIGIN || '*',
       methods: ['GET', 'POST']
     }
   })
-
-  console.log('🎮 Socket.IO server running on port 3002')
+  
+  console.log(`🎮 Socket.IO server running on port ${socketPort}`)
 
   io.on('connection', (socket) => {
     console.log(`✅ Player connected: ${socket.id}`)

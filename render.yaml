@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: liar-game
+    runtime: node
+    buildCommand: pnpm install && pnpm build
+    startCommand: node .output/server/index.mjs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NUXT_PUBLIC_SOCKET_URL
+        sync: false  # À configurer manuellement avec l'URL du service

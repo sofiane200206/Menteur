@@ -53,7 +53,17 @@ export function useMultiplayer() {
   function connect() {
     if (socket.value?.connected) return
 
-    socket.value = io('http://localhost:3002', {
+    // En production, utiliser la même origine (pas besoin de port séparé)
+    // En dev, utiliser localhost:3002
+    const config = useRuntimeConfig()
+    const isDev = process.dev
+    const socketUrl = isDev 
+      ? 'http://localhost:3002' 
+      : (config.public.socketUrl || window.location.origin)
+    
+    console.log('🔌 Connecting to Socket.IO:', socketUrl)
+    
+    socket.value = io(socketUrl, {
       transports: ['websocket', 'polling']
     })
 
