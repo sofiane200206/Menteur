@@ -4,6 +4,7 @@ const {
   room,
   error,
   isHost,
+  myId,
   createRoom,
   joinRoom,
   toggleReady,
@@ -219,7 +220,7 @@ const canStart = computed(() => {
             v-for="player in room.players"
             :key="player.id"
             class="player-item"
-            :class="{ 'is-me': player.socketId === $socket?.id }"
+            :class="{ 'is-me': player.id === myId }"
           >
             <div class="player-info">
               <UIcon 
@@ -244,11 +245,11 @@ const canStart = computed(() => {
         <div class="room-actions">
           <UButton
             v-if="!isHost"
-            :color="room.players.find(p => p.socketId === $socket?.id)?.isReady ? 'success' : 'primary'"
+            :color="room.players.find(p => p.id === myId)?.isReady ? 'success' : 'primary'"
             size="lg"
             @click="toggleReady"
           >
-            {{ room.players.find(p => p.socketId === $socket?.id)?.isReady ? '✓ Prêt !' : 'Je suis prêt' }}
+            {{ room.players.find(p => p.id === myId)?.isReady ? '✓ Prêt !' : 'Je suis prêt' }}
           </UButton>
 
           <UButton

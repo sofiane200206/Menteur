@@ -38,14 +38,16 @@ interface PublicGameState {
   canChallenge: boolean
 }
 
+// État global partagé entre tous les composants
+const socket = ref<Socket | null>(null)
+const isConnected = ref(false)
+const room = ref<Room | null>(null)
+const gameState = ref<PublicGameState | null>(null)
+const myCards = ref<Card[]>([])
+const myId = ref<string>('')
+const error = ref<string>('')
+
 export function useMultiplayer() {
-  const socket = ref<Socket | null>(null)
-  const isConnected = ref(false)
-  const room = ref<Room | null>(null)
-  const gameState = ref<PublicGameState | null>(null)
-  const myCards = ref<Card[]>([])
-  const myId = ref<string>('')
-  const error = ref<string>('')
 
   // Connexion au serveur
   function connect() {
@@ -188,16 +190,6 @@ export function useMultiplayer() {
     const RANKS: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
     const index = RANKS.indexOf(gameState.value.currentRank)
     return RANKS[(index + 1) % RANKS.length] ?? 'A'
-  })
-
-  // Connexion automatique au mount
-  onMounted(() => {
-    connect()
-  })
-
-  // Déconnexion au unmount
-  onUnmounted(() => {
-    disconnect()
   })
 
   return {

@@ -62,7 +62,22 @@ function startGame() {
           icon="i-lucide-play"
           @click="startGame"
         >
-          Commencer la partie
+          🎮 Jouer en solo
+        </UButton>
+
+        <div class="divider">
+          <span>ou</span>
+        </div>
+
+        <UButton 
+          color="secondary" 
+          variant="outline"
+          size="xl" 
+          block
+          icon="i-lucide-globe"
+          @click="$router.push('/online')"
+        >
+          🌐 Jouer en ligne
         </UButton>
       </div>
     </div>
@@ -146,5 +161,30 @@ function startGame() {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #6b7280;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+:root.dark .divider::before,
+:root.dark .divider::after {
+  background: #374151;
+}
+
+.divider span {
+  padding: 0 12px;
+  font-size: 14px;
 }
 </style>
