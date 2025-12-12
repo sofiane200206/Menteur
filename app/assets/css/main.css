@@ -1,0 +1,47 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme static {
+  --font-sans: 'Public Sans', sans-serif;
+
+  --color-green-50: #EFFDF5;
+  --color-green-100: #D9FBE8;
+  --color-green-200: #B3F5D1;
+  --color-green-300: #75EDAE;
+  --color-green-400: #00DC82;
+  --color-green-500: #00C16A;
+  --color-green-600: #00A155;
+  --color-green-700: #007F45;
+  --color-green-800: #016538;
+  --color-green-900: #0A5331;
+  --color-green-950: #052E16;
+}
+
+/* Game-specific styles */
+body {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  min-height: 100vh;
+}
+
+:root.dark body {
+  background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #020617 100%);
+}
+
+/* Card game table feel */
+.game-page {
+  background: radial-gradient(ellipse at center, rgba(34, 197, 94, 0.05) 0%, transparent 70%);
+}
+
+/* Smooth animations */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 200ms;
+}
+
+/* Selection prevention on game elements */
+.game-card,
+.player-hand,
+.opponent-hand {
+  user-select: none;
+  -webkit-user-select: none;
+}
