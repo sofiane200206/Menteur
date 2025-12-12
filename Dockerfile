@@ -24,5 +24,7 @@ COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 # Installer socket.io pour le serveur custom
 RUN pnpm install --prod --frozen-lockfile
 
-EXPOSE 8080
+# Render définit PORT automatiquement (généralement 10000)
+ENV PORT=10000
+EXPOSE 10000
 CMD ["node", "server.mjs"]
