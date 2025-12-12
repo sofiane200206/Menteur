@@ -55,7 +55,8 @@ export function useMultiplayer() {
 
     const config = useRuntimeConfig()
     // Utiliser l'URL du serveur WebSocket depuis la config
-    const socketUrl = config.public.socketUrl as string
+    // Si vide, utiliser la même origine (pour Render où tout est sur le même serveur)
+    const socketUrl = (config.public.socketUrl as string) || window.location.origin
     
     console.log('🔌 Connecting to Socket.IO:', socketUrl)
     
