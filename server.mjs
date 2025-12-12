@@ -86,8 +86,14 @@ async function start() {
   const io = new Server(httpServer, {
     cors: {
       origin: '*',
-      methods: ['GET', 'POST']
-    }
+      methods: ['GET', 'POST'],
+      credentials: true
+    },
+    // Important pour Render et autres proxies
+    transports: ['websocket', 'polling'],
+    allowEIO3: true,
+    pingTimeout: 60000,
+    pingInterval: 25000
   })
 
   console.log('🎮 Socket.IO attached to server')

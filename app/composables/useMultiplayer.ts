@@ -61,7 +61,11 @@ export function useMultiplayer() {
     console.log('🔌 Connecting to Socket.IO:', socketUrl)
     
     socket.value = io(socketUrl, {
-      transports: ['websocket', 'polling']
+      transports: ['polling', 'websocket'], // Polling d'abord, plus fiable
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 20000
     })
 
     socket.value.on('connect', () => {
@@ -70,9 +74,14 @@ export function useMultiplayer() {
       console.log('✅ Connected to server:', myId.value)
     })
 
-    socket.value.on('disconnect', () => {
+    socket.value.on('connect_error', (err) => {
+      console.error('❌ Connection error:', err.message)
+      error.value = 'Erreur de connexion au serveur'
+    })
+
+    socket.value.on('disconnect', (reason) => {
       isConnected.value = false
-      console.log('❌ Disconnected from server')
+      console.log('❌ Disconnected from server:', reason)
     })
 
     // Events de room
