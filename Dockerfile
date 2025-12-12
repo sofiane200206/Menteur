@@ -19,6 +19,10 @@ ENV NODE_ENV=production
 COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/server.mjs ./server.mjs
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
+
+# Installer socket.io pour le serveur custom
+RUN pnpm install --prod --frozen-lockfile
 
 EXPOSE 8080
 CMD ["node", "server.mjs"]
