@@ -1,12 +1,14 @@
 <script setup lang="ts">
-const { gameState, startGame, playCards, challenge, resetGame, getNextRank, humanPlayer, isHumanTurn } = useGame()
+import { getNextCardType } from '~/types/game'
+
+const { gameState, startGame, playCards, challenge, resetGame, humanPlayer, isHumanTurn } = useGame()
 
 // Cartes sélectionnées par le joueur
 const selectedCards = ref<string[]>([])
 
-// Rang attendu pour le prochain coup
-const expectedRank = computed(() => {
-  return getNextRank(gameState.value.currentRank)
+// Type attendu pour le prochain coup
+const expectedType = computed(() => {
+  return getNextCardType(gameState.value.currentCardType)
 })
 
 // Est-ce le premier coup (pile vide) ?
@@ -25,10 +27,10 @@ function getOpponentPosition(index: number): 'top' | 'left' | 'right' {
   return positions[index % 3] ?? 'top'
 }
 
-// Jouer les cartes sélectionnées avec le rang attendu automatiquement
+// Jouer les cartes sélectionnées avec le type attendu automatiquement
 function handlePlay() {
   if (selectedCards.value.length > 0) {
-    playCards(selectedCards.value, expectedRank.value)
+    playCards(selectedCards.value, expectedType.value)
     selectedCards.value = []
   }
 }
@@ -107,7 +109,7 @@ useHead({
         <!-- Contrôles du joueur -->
         <div v-if="humanPlayer" class="controls-area">
           <GameControls
-            :expected-rank="expectedRank"
+            :expected-type="expectedType"
             :selected-count="selectedCards.length"
             :disabled="!isHumanTurn || gameState.gamePhase !== 'playing'"
             :can-challenge="Boolean(gameState.canChallenge && isHumanTurn)"

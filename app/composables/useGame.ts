@@ -1,12 +1,12 @@
-import type { Card, Player, GameState, Rank, PlayedCards } from '~/types/game'
-import { SUITS, RANKS } from '~/types/game'
+import type { Card, Player, GameState, CardType, PlayedCards } from '~/types/game'
+import { CARD_ORDER, JOKER_CARD, getNextCardType, isJoker, CARD_INFO } from '~/types/game'
 
 export function useGame() {
   const gameState = useState<GameState>('gameState', () => ({
     players: [],
     currentPlayerIndex: 0,
     pile: [],
-    currentRank: null,
+    currentCardType: null,
     lastPlay: null,
     gamePhase: 'setup',
     winner: null,
@@ -14,20 +14,31 @@ export function useGame() {
     canChallenge: false
   }))
 
-  // Créer un deck de 52 cartes
+  // Créer un deck avec les 8 cartes personnalisées (plusieurs copies de chaque)
   function createDeck(): Card[] {
     const deck: Card[] = []
     let id = 0
-    for (const suit of SUITS) {
-      for (const rank of RANKS) {
+    
+    // 4 copies de chaque carte principale
+    for (const cardType of CARD_ORDER) {
+      for (let i = 0; i < 4; i++) {
         deck.push({
           id: `card-${id++}`,
-          suit,
-          rank,
+          type: cardType,
           faceUp: false
         })
       }
     }
+    
+    // 2 copies du Joker (Peto)
+    for (let i = 0; i < 2; i++) {
+      deck.push({
+        id: `card-${id++}`,
+        type: JOKER_CARD,
+        faceUp: false
+      })
+    }
+    
     return deck
   }
 
@@ -85,28 +96,22 @@ export function useGame() {
     dealCards(players, deck)
 
     const firstPlayer = players[0]
+    const firstCardType = CARD_ORDER[0]!
     gameState.value = {
       players,
       currentPlayerIndex: 0,
       pile: [],
-      currentRank: null,
+      currentCardType: null,
       lastPlay: null,
       gamePhase: 'playing',
       winner: null,
-      message: firstPlayer ? `C'est à ${firstPlayer.name} de jouer ! Posez des cartes comme "A".` : 'Partie commencée !',
+      message: firstPlayer ? `C'est à ${firstPlayer.name} de jouer ! Posez des cartes comme "${CARD_INFO[firstCardType].name}".` : 'Partie commencée !',
       canChallenge: false
     }
   }
 
-  // Obtenir le rang suivant dans l'ordre
-  function getNextRank(currentRank: Rank | null): Rank {
-    if (!currentRank) return 'A'
-    const index = RANKS.indexOf(currentRank)
-    return RANKS[(index + 1) % RANKS.length] ?? 'A'
-  }
-
   // Jouer des cartes
-  function playCards(cardIds: string[], claimedRank: Rank) {
+  function playCards(cardIds: string[], claimedType: CardType) {
     const state = gameState.value
     const currentPlayer = state.players[state.currentPlayerIndex]
     
@@ -114,6 +119,16 @@ export function useGame() {
     
     if (cardIds.length === 0) {
       state.message = 'Vous devez jouer au moins une carte !'
+      return false
+    }
+
+    // Vérifier si le joueur essaie de jouer légalement un Joker (interdit!)
+    const cardsToPlay = currentPlayer.cards.filter(c => cardIds.includes(c.id))
+    const hasJoker = cardsToPlay.some(c => isJoker(c.type))
+    
+    // Si on joue un Joker et qu'on dit la vérité, c'est interdit!
+    if (hasJoker && claimedType === JOKER_CARD) {
+      state.message = '🃏 Le Joker (Peto) ne peut JAMAIS être joué légalement ! Tu dois mentir pour le poser !'
       return false
     }
 
@@ -136,11 +151,11 @@ export function useGame() {
     // Enregistrer le dernier coup
     state.lastPlay = {
       cards: playedCards,
-      claimedRank,
+      claimedType,
       playerId: currentPlayer.id
     }
     
-    state.currentRank = claimedRank
+    state.currentCardType = claimedType
     state.canChallenge = true
 
     // Vérifier si le joueur a gagné
@@ -151,7 +166,8 @@ export function useGame() {
       return true
     }
 
-    state.message = `${currentPlayer.name} a joué ${playedCards.length} carte(s) comme "${claimedRank}".`
+    const cardName = CARD_INFO[claimedType].name
+    state.message = `${currentPlayer.name} a joué ${playedCards.length} carte(s) comme "${cardName}".`
     
     // Passer au joueur suivant
     nextTurn()
@@ -178,8 +194,9 @@ export function useGame() {
           aiTurn()
         }, 1500)
       } else {
-        const nextRank = getNextRank(state.currentRank)
-        state.message = `C'est à ${nextPlayer.name} de jouer ! Posez des cartes comme "${nextRank}".`
+        const nextType = getNextCardType(state.currentCardType)
+        const typeName = CARD_INFO[nextType].name
+        state.message = `C'est à ${nextPlayer.name} de jouer ! Posez des cartes comme "${typeName}".`
       }
     }
   }
@@ -201,16 +218,18 @@ export function useGame() {
     state.canChallenge = false
 
     // Vérifier si le joueur accusé a menti
-    const claimedRank = state.lastPlay.claimedRank
+    const claimedType = state.lastPlay.claimedType
     const actualCards = state.lastPlay.cards
-    const wasLying = actualCards.some(card => card.rank !== claimedRank)
+    // Une carte est un mensonge si elle n'est pas du type annoncé (y compris le Joker)
+    const wasLying = actualCards.some(card => card.type !== claimedType)
 
     // Révéler les cartes
     actualCards.forEach(card => card.faceUp = true)
 
+    const typeName = CARD_INFO[claimedType].name
     state.message = wasLying 
-      ? `🔍 Révélation... ${accused.name} a MENTI ! Les cartes ne sont pas des "${claimedRank}" !`
-      : `🔍 Révélation... ${accused.name} disait la VÉRITÉ ! Ce sont bien des "${claimedRank}" !`
+      ? `🔍 Révélation... ${accused.name} a MENTI ! Les cartes ne sont pas des "${typeName}" !`
+      : `🔍 Révélation... ${accused.name} disait la VÉRITÉ ! Ce sont bien des "${typeName}" !`
 
     setTimeout(() => {
       if (wasLying) {
@@ -221,10 +240,9 @@ export function useGame() {
         challenger.cards.push(...state.pile.map(c => ({ ...c, faceUp: !challenger.isAI })))
       }
 
-      // Vider la pile mais GARDER le rang actuel pour continuer la progression
+      // Vider la pile mais GARDER le type actuel pour continuer la progression
       state.pile = []
       state.lastPlay = null
-      // Ne pas remettre currentRank à null - on continue la progression !
       state.gamePhase = 'playing'
 
       // Le perdant du challenge commence le prochain tour
@@ -238,11 +256,12 @@ export function useGame() {
       const loser = state.players[loserIndex]
       if (loser) {
         loser.isCurrentTurn = true
-        const nextRank = getNextRank(state.currentRank)
+        const nextType = getNextCardType(state.currentCardType)
+        const typeName = CARD_INFO[nextType].name
         if (loser.isAI) {
           setTimeout(() => aiTurn(), 1500)
         } else {
-          state.message = `C'est à ${loser.name} de jouer ! Posez des cartes comme "${nextRank}".`
+          state.message = `C'est à ${loser.name} de jouer ! Posez des cartes comme "${typeName}".`
         }
       }
     }, 2500)
@@ -267,11 +286,12 @@ export function useGame() {
     }
 
     // L'IA joue des cartes
-    const expectedRank = getNextRank(state.currentRank)
+    const expectedType = getNextCardType(state.currentCardType)
     
-    // Chercher des cartes du bon rang
-    const matchingCards = aiPlayer.cards.filter(c => c.rank === expectedRank)
-    const otherCards = aiPlayer.cards.filter(c => c.rank !== expectedRank)
+    // Chercher des cartes du bon type (pas de Joker!)
+    const matchingCards = aiPlayer.cards.filter(c => c.type === expectedType)
+    const otherCards = aiPlayer.cards.filter(c => c.type !== expectedType && !isJoker(c.type))
+    const jokerCards = aiPlayer.cards.filter(c => isJoker(c.type))
 
     let cardsToPlay: Card[]
 
@@ -279,18 +299,16 @@ export function useGame() {
       // Jouer les vraies cartes
       const numToPlay = Math.min(matchingCards.length, Math.floor(Math.random() * 2) + 1)
       cardsToPlay = matchingCards.slice(0, numToPlay)
-    } else {
-      // Doit mentir - jouer des cartes aléatoires
+    } else if (otherCards.length > 0) {
+      // Doit mentir - jouer des cartes aléatoires (pas de Joker si possible)
       const numToPlay = Math.floor(Math.random() * 2) + 1
       cardsToPlay = otherCards.slice(0, Math.min(numToPlay, otherCards.length))
-    }
-
-    // S'assurer qu'on a au moins une carte
-    if (cardsToPlay.length === 0 && aiPlayer.cards.length > 0) {
-      const firstCard = aiPlayer.cards[0]
-      if (firstCard) {
-        cardsToPlay = [firstCard]
-      }
+    } else if (jokerCards.length > 0) {
+      // Ne reste que des Jokers - doit les jouer en mentant
+      cardsToPlay = [jokerCards[0]!]
+    } else {
+      // Pas de cartes
+      return
     }
 
     if (cardsToPlay.length === 0) return
@@ -300,7 +318,7 @@ export function useGame() {
     state.message = `${aiPlayer.name} réfléchit... 🤔`
     
     setTimeout(() => {
-      playCards(cardIds, expectedRank)
+      playCards(cardIds, expectedType)
     }, 1000)
   }
 
@@ -310,7 +328,7 @@ export function useGame() {
       players: [],
       currentPlayerIndex: 0,
       pile: [],
-      currentRank: null,
+      currentCardType: null,
       lastPlay: null,
       gamePhase: 'setup',
       winner: null,
@@ -341,7 +359,7 @@ export function useGame() {
     playCards,
     challenge,
     resetGame,
-    getNextRank,
+    getNextCardType,
     currentPlayer,
     humanPlayer,
     isHumanTurn

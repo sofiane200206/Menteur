@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import type { Rank } from '~/types/game'
+import type { CardType } from '~/types/game'
+import { CARD_INFO } from '~/types/game'
 
 const props = defineProps<{
-  expectedRank: Rank
+  expectedType: CardType
   selectedCount: number
   disabled: boolean
   canChallenge: boolean
   isFirstPlay: boolean
 }>()
+
+// Nom de la carte attendue
+const expectedCardName = computed(() => CARD_INFO[props.expectedType].name)
 
 const emit = defineEmits<{
   play: []
@@ -17,13 +21,13 @@ const emit = defineEmits<{
 
 <template>
   <div class="game-controls">
-    <!-- Annonce du rang obligatoire -->
+    <!-- Annonce du type obligatoire -->
     <div class="rank-announcement">
       <div class="rank-label">
         <span v-if="isFirstPlay">🎯 Vous devez jouer des</span>
         <span v-else>🎯 Vous devez annoncer des</span>
       </div>
-      <div class="rank-value">{{ expectedRank }}</div>
+      <div class="rank-value">{{ expectedCardName }}</div>
       <div class="rank-hint">
         (Posez des cartes - vous pouvez mentir ! 🤫)
       </div>
@@ -37,7 +41,7 @@ const emit = defineEmits<{
         :disabled="disabled || selectedCount === 0"
         @click="emit('play')"
       >
-        Jouer {{ selectedCount }} carte(s) comme "{{ expectedRank }}"
+        Jouer {{ selectedCount }} carte(s) comme "{{ expectedCardName }}"
       </UButton>
       
       <UButton
@@ -54,7 +58,7 @@ const emit = defineEmits<{
     </div>
 
     <p v-if="selectedCount === 0 && !disabled" class="help-text">
-      👆 Sélectionnez des cartes dans votre main pour les jouer comme "{{ expectedRank }}"
+      👆 Sélectionnez des cartes dans votre main pour les jouer comme "{{ expectedCardName }}"
     </p>
     
     <p v-if="disabled && !canChallenge" class="wait-text">

@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import type { Card, PlayedCards } from '~/types/game'
+import { CARD_INFO } from '~/types/game'
 
 const props = defineProps<{
   pile: Card[]
   lastPlay: PlayedCards | null
 }>()
+
+// Obtenir le nom de la carte annoncée
+const claimedCardName = computed(() => {
+  if (!props.lastPlay) return ''
+  return CARD_INFO[props.lastPlay.claimedType].name
+})
 
 // Cartes de l'ancien pile (sans le dernier coup)
 const oldPileCards = computed(() => {
@@ -71,7 +78,7 @@ const lastPlayedCards = computed(() => {
     
     <div v-if="lastPlay" class="last-play-info">
       <span class="last-play-text">
-        Dernier coup : <strong>{{ lastPlay.cards.length }} carte(s) annoncée(s) "{{ lastPlay.claimedRank }}"</strong>
+        Dernier coup : <strong>{{ lastPlay.cards.length }} carte(s) annoncée(s) "{{ claimedCardName }}"</strong>
       </span>
     </div>
   </div>

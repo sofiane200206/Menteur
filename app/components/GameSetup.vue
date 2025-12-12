@@ -30,11 +30,16 @@ function startGame() {
         <h2 class="rules-title">📜 Règles du jeu</h2>
         <ul class="rules-list">
           <li>🎯 <strong>But :</strong> Se débarrasser de toutes ses cartes</li>
-          <li>🃏 <strong>Tour :</strong> Jouez des cartes face cachée et annoncez leur rang</li>
+          <li>🃏 <strong>Tour :</strong> Jouez des cartes face cachée et annoncez leur type</li>
           <li>🤥 <strong>Bluff :</strong> Vous pouvez mentir sur les cartes jouées !</li>
           <li>🔍 <strong>Challenge :</strong> Criez "MENTEUR !" si vous pensez qu'on vous ment</li>
           <li>⚠️ <strong>Punition :</strong> Le menteur (ou l'accusateur qui se trompe) récupère la pile</li>
+          <li>🃏 <strong>Joker (Peto) :</strong> Ne peut JAMAIS être joué légalement - tu dois mentir pour le poser !</li>
         </ul>
+        
+        <div class="card-order-button">
+          <CardOrderDisplay />
+        </div>
       </div>
 
       <div class="setup-form">
@@ -155,6 +160,12 @@ function startGame() {
 .rules-list li {
   font-size: 0.95rem;
   line-height: 1.5;
+}
+
+.card-order-button {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
 }
 
 .setup-form {

@@ -1,6 +1,6 @@
 import { Server } from 'socket.io'
-import type { Card, Rank } from '../../app/types/game'
-import { SUITS, RANKS } from '../../app/types/game'
+import type { Card, CardType } from '../../app/types/game'
+import { CARD_ORDER, JOKER_CARD, getNextCardType, isJoker, CARD_INFO } from '../../app/types/game'
 
 interface Room {
   id: string
@@ -26,10 +26,10 @@ interface OnlinePlayer {
 interface GameState {
   currentPlayerIndex: number
   pile: Card[]
-  currentRank: Rank | null
+  currentCardType: CardType | null
   lastPlay: {
     cards: Card[]
-    claimedRank: Rank
+    claimedType: CardType
     playerId: string
   } | null
   gamePhase: 'waiting' | 'playing' | 'challenge' | 'gameOver'
@@ -49,16 +49,27 @@ function generateRoomId(): string {
 function createDeck(): Card[] {
   const deck: Card[] = []
   let id = 0
-  for (const suit of SUITS) {
-    for (const rank of RANKS) {
+  
+  // 4 copies de chaque carte principale
+  for (const cardType of CARD_ORDER) {
+    for (let i = 0; i < 4; i++) {
       deck.push({
         id: `card-${id++}`,
-        suit,
-        rank,
+        type: cardType,
         faceUp: false
       })
     }
   }
+  
+  // 2 copies du Joker (Peto)
+  for (let i = 0; i < 2; i++) {
+    deck.push({
+      id: `card-${id++}`,
+      type: JOKER_CARD,
+      faceUp: false
+    })
+  }
+  
   return deck
 }
 
@@ -71,12 +82,6 @@ function shuffleDeck(deck: Card[]): Card[] {
     shuffled[j] = temp
   }
   return shuffled
-}
-
-function getNextRank(currentRank: Rank | null): Rank {
-  if (!currentRank) return 'A'
-  const index = RANKS.indexOf(currentRank)
-  return RANKS[(index + 1) % RANKS.length] ?? 'A'
 }
 
 function dealCards(players: OnlinePlayer[], deck: Card[]): void {
@@ -102,10 +107,10 @@ function getPublicGameState(room: Room): any {
     })),
     currentPlayerIndex: room.gameState.currentPlayerIndex,
     pileCount: room.gameState.pile.length,
-    currentRank: room.gameState.currentRank,
+    currentCardType: room.gameState.currentCardType,
     lastPlay: room.gameState.lastPlay ? {
       cardCount: room.gameState.lastPlay.cards.length,
-      claimedRank: room.gameState.lastPlay.claimedRank,
+      claimedType: room.gameState.lastPlay.claimedType,
       playerId: room.gameState.lastPlay.playerId,
       cards: room.gameState.lastPlay.cards // Montrer les cartes si révélées
     } : null,
@@ -266,14 +271,15 @@ export default defineNitroPlugin((nitroApp) => {
 
       room.players[0]!.isCurrentTurn = true
       room.status = 'playing'
+      const firstCardType = CARD_ORDER[0]!
       room.gameState = {
         currentPlayerIndex: 0,
         pile: [],
-        currentRank: null,
+        currentCardType: null,
         lastPlay: null,
         gamePhase: 'playing',
         winnerId: null,
-        message: `C'est à ${room.players[0]!.name} de jouer ! Posez des cartes comme "A".`,
+        message: `C'est à ${room.players[0]!.name} de jouer ! Posez des cartes comme "${CARD_INFO[firstCardType].name}".`,
         canChallenge: false
       }
 
@@ -287,7 +293,7 @@ export default defineNitroPlugin((nitroApp) => {
     })
 
     // Jouer des cartes
-    socket.on('game:playCards', ({ cardIds, claimedRank }) => {
+    socket.on('game:playCards', ({ cardIds, claimedType }) => {
       const roomId = playerRooms.get(socket.id)
       if (!roomId) return
 
@@ -302,6 +308,15 @@ export default defineNitroPlugin((nitroApp) => {
 
       if (cardIds.length === 0) {
         socket.emit('room:error', 'Vous devez jouer au moins une carte')
+        return
+      }
+
+      // Vérifier si le joueur essaie de jouer légalement un Joker (interdit!)
+      const cardsToPlay = currentPlayer.cards.filter(c => cardIds.includes(c.id))
+      const hasJoker = cardsToPlay.some(c => isJoker(c.type))
+      
+      if (hasJoker && claimedType === JOKER_CARD) {
+        socket.emit('room:error', '🃏 Le Joker (Peto) ne peut JAMAIS être joué légalement ! Tu dois mentir pour le poser !')
         return
       }
 
@@ -322,10 +337,10 @@ export default defineNitroPlugin((nitroApp) => {
       room.gameState.pile.push(...playedCards)
       room.gameState.lastPlay = {
         cards: playedCards,
-        claimedRank,
+        claimedType,
         playerId: currentPlayer.id
       }
-      room.gameState.currentRank = claimedRank
+      room.gameState.currentCardType = claimedType
       room.gameState.canChallenge = true
 
       // Vérifier victoire
@@ -339,7 +354,8 @@ export default defineNitroPlugin((nitroApp) => {
         return
       }
 
-      room.gameState.message = `${currentPlayer.name} a joué ${playedCards.length} carte(s) comme "${claimedRank}".`
+      const cardName = CARD_INFO[claimedType].name
+      room.gameState.message = `${currentPlayer.name} a joué ${playedCards.length} carte(s) comme "${cardName}".`
 
       // Passer au joueur suivant
       currentPlayer.isCurrentTurn = false
@@ -347,8 +363,9 @@ export default defineNitroPlugin((nitroApp) => {
       const nextPlayer = room.players[room.gameState.currentPlayerIndex]
       if (nextPlayer) {
         nextPlayer.isCurrentTurn = true
-        const nextRank = getNextRank(room.gameState.currentRank)
-        room.gameState.message += ` C'est à ${nextPlayer.name} de jouer (${nextRank}).`
+        const nextType = getNextCardType(room.gameState.currentCardType)
+        const nextTypeName = CARD_INFO[nextType].name
+        room.gameState.message += ` C'est à ${nextPlayer.name} de jouer (${nextTypeName}).`
       }
 
       // Envoyer la mise à jour des cartes au joueur qui a joué
@@ -377,9 +394,9 @@ export default defineNitroPlugin((nitroApp) => {
       room.gameState.gamePhase = 'challenge'
       room.gameState.canChallenge = false
 
-      const claimedRank = room.gameState.lastPlay.claimedRank
+      const claimedType = room.gameState.lastPlay.claimedType
       const actualCards = room.gameState.lastPlay.cards
-      const wasLying = actualCards.some(card => card.rank !== claimedRank)
+      const wasLying = actualCards.some(card => card.type !== claimedType)
 
       // Révéler les cartes
       actualCards.forEach(card => card.faceUp = true)
@@ -415,8 +432,9 @@ export default defineNitroPlugin((nitroApp) => {
         const loserPlayer = room.players[loserIndex]
         if (loserPlayer) {
           loserPlayer.isCurrentTurn = true
-          const nextRank = getNextRank(room.gameState.currentRank)
-          room.gameState.message += ` C'est à ${loserPlayer.name} de jouer (${nextRank}).`
+          const nextType = getNextCardType(room.gameState.currentCardType)
+          const nextTypeName = CARD_INFO[nextType].name
+          room.gameState.message += ` C'est à ${loserPlayer.name} de jouer (${nextTypeName}).`
         }
 
         // Envoyer les cartes mises à jour

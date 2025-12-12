@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Card } from '~/types/game'
-import { SUIT_SYMBOLS, SUIT_COLORS } from '~/types/game'
+import { CARD_INFO, isJoker } from '~/types/game'
 
 const props = defineProps<{
   card: Card
@@ -12,6 +12,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   select: [card: Card]
 }>()
+
+// Obtenir les infos de la carte
+const cardInfo = computed(() => CARD_INFO[props.card.type])
+const isJokerCard = computed(() => isJoker(props.card.type))
 
 function handleClick() {
   if (props.selectable) {
@@ -25,22 +29,22 @@ function handleClick() {
     class="game-card"
     :class="[
       card.faceUp ? 'face-up' : 'face-down',
-      { 'selected': selected, 'selectable': selectable, 'small': small }
+      { 'selected': selected, 'selectable': selectable, 'small': small, 'joker': isJokerCard && card.faceUp }
     ]"
     @click="handleClick"
   >
     <template v-if="card.faceUp">
-      <div class="card-content" :class="SUIT_COLORS[card.suit]">
-        <div class="card-corner top-left">
-          <span class="card-rank">{{ card.rank }}</span>
-          <span class="card-suit">{{ SUIT_SYMBOLS[card.suit] }}</span>
+      <div class="card-content">
+        <img 
+          :src="cardInfo.image" 
+          :alt="cardInfo.name"
+          class="card-image"
+        />
+        <div class="card-name" :class="{ 'joker-name': isJokerCard }">
+          {{ cardInfo.name }}
         </div>
-        <div class="card-center">
-          <span class="card-suit-large">{{ SUIT_SYMBOLS[card.suit] }}</span>
-        </div>
-        <div class="card-corner bottom-right">
-          <span class="card-rank">{{ card.rank }}</span>
-          <span class="card-suit">{{ SUIT_SYMBOLS[card.suit] }}</span>
+        <div v-if="isJokerCard" class="joker-badge">
+          🃏 JOKER
         </div>
       </div>
     </template>
@@ -56,24 +60,30 @@ function handleClick() {
 
 <style scoped>
 .game-card {
-  width: 70px;
-  height: 100px;
+  width: 80px;
+  height: 110px;
   border-radius: 8px;
   cursor: default;
   transition: all 0.2s ease;
   position: relative;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .game-card.small {
-  width: 50px;
-  height: 72px;
+  width: 60px;
+  height: 85px;
 }
 
 .game-card.face-up {
   background: white;
   border: 2px solid #e5e7eb;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-card.face-up.joker {
+  border: 3px solid #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
 }
 
 .game-card.face-down {
@@ -102,57 +112,56 @@ function handleClick() {
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 4px;
   position: relative;
 }
 
-.card-corner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1;
+.card-image {
+  width: 100%;
+  height: 75%;
+  object-fit: cover;
+  border-radius: 6px 6px 0 0;
 }
 
-.card-corner.top-left {
-  align-self: flex-start;
-}
-
-.card-corner.bottom-right {
-  align-self: flex-end;
-  transform: rotate(180deg);
-}
-
-.card-rank {
-  font-size: 14px;
-  font-weight: bold;
-}
-
-.small .card-rank {
-  font-size: 11px;
-}
-
-.card-suit {
-  font-size: 12px;
-}
-
-.small .card-suit {
-  font-size: 10px;
-}
-
-.card-center {
+.card-name {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  padding: 4px 2px;
 }
 
-.card-suit-large {
-  font-size: 28px;
+.small .card-name {
+  font-size: 8px;
+  padding: 2px;
 }
 
-.small .card-suit-large {
-  font-size: 20px;
+.card-name.joker-name {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.joker-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #f59e0b;
+  color: white;
+  font-size: 8px;
+  font-weight: bold;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.small .joker-badge {
+  font-size: 6px;
+  padding: 1px 2px;
+  top: 2px;
+  right: 2px;
 }
 
 .card-back {
@@ -184,5 +193,9 @@ function handleClick() {
 :root.dark .game-card.face-up {
   background: #1f2937;
   border-color: #374151;
+}
+
+:root.dark .game-card.face-up.joker {
+  border-color: #f59e0b;
 }
 </style>

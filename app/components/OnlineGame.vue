@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { Rank } from '~/types/game'
+import type { CardType } from '~/types/game'
+import { CARD_ORDER, CARD_INFO } from '~/types/game'
 
 const {
   gameState,
@@ -7,7 +8,7 @@ const {
   myId,
   error,
   isMyTurn,
-  expectedRank,
+  expectedType,
   playCards,
   challenge,
   leaveRoom
@@ -23,7 +24,7 @@ const selectedCards = ref<string[]>([])
 // Jouer les cartes
 function handlePlay() {
   if (selectedCards.value.length > 0 && gameState.value) {
-    playCards(selectedCards.value, expectedRank.value)
+    playCards(selectedCards.value, expectedType.value)
     selectedCards.value = []
   }
 }
@@ -45,13 +46,13 @@ function toggleCard(cardId: string) {
 
 // Trier les cartes
 const sortedCards = computed(() => {
-  const rankOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-  const suitOrder = ['spades', 'hearts', 'diamonds', 'clubs']
-  
   return [...myCards.value].sort((a, b) => {
-    const rankDiff = rankOrder.indexOf(a.rank) - rankOrder.indexOf(b.rank)
-    if (rankDiff !== 0) return rankDiff
-    return suitOrder.indexOf(a.suit) - suitOrder.indexOf(b.suit)
+    const indexA = CARD_ORDER.indexOf(a.type as typeof CARD_ORDER[number])
+    const indexB = CARD_ORDER.indexOf(b.type as typeof CARD_ORDER[number])
+    // Les jokers en dernier
+    if (indexA === -1) return 1
+    if (indexB === -1) return -1
+    return indexA - indexB
   })
 })
 
@@ -125,7 +126,7 @@ const winner = computed(() => {
       <div class="pile-info">
         <UBadge color="neutral">{{ gameState.pileCount }} cartes dans la pile</UBadge>
         <div v-if="gameState.lastPlay" class="last-play-text">
-          Annoncé : <strong>{{ gameState.lastPlay.cardCount }}x {{ gameState.lastPlay.claimedRank }}</strong>
+          Annoncé : <strong>{{ gameState.lastPlay.cardCount }}x {{ CARD_INFO[gameState.lastPlay.claimedType].name }}</strong>
         </div>
       </div>
     </div>
@@ -133,8 +134,8 @@ const winner = computed(() => {
     <!-- Contrôles -->
     <div class="controls-area">
       <div class="rank-announcement">
-        <span class="rank-label">Rang à annoncer :</span>
-        <span class="rank-value">{{ expectedRank }}</span>
+        <span class="rank-label">Type à annoncer :</span>
+        <span class="rank-value">{{ CARD_INFO[expectedType].name }}</span>
       </div>
 
       <div class="action-buttons">
@@ -144,7 +145,7 @@ const winner = computed(() => {
           :disabled="!isMyTurn || selectedCards.length === 0 || gameState.gamePhase !== 'playing'"
           @click="handlePlay"
         >
-          Jouer {{ selectedCards.length }} carte(s) comme "{{ expectedRank }}"
+          Jouer {{ selectedCards.length }} carte(s) comme "{{ CARD_INFO[expectedType].name }}"
         </UButton>
 
         <UButton

@@ -1,5 +1,5 @@
 // Types pour le multijoueur
-import type { Card, Rank, Player } from './game'
+import type { Card, CardType, Player } from './game'
 
 export interface Room {
   id: string
@@ -26,10 +26,10 @@ export interface OnlineGameState {
   players: OnlinePlayer[]
   currentPlayerIndex: number
   pile: Card[]
-  currentRank: Rank | null
+  currentCardType: CardType | null
   lastPlay: {
     cards: Card[]
-    claimedRank: Rank
+    claimedType: CardType
     playerId: string
   } | null
   gamePhase: 'waiting' | 'playing' | 'challenge' | 'gameOver'
@@ -45,7 +45,7 @@ export interface ClientToServerEvents {
   'room:leave': () => void
   'room:ready': () => void
   'room:start': () => void
-  'game:playCards': (data: { cardIds: string[]; claimedRank: Rank }) => void
+  'game:playCards': (data: { cardIds: string[]; claimedType: CardType }) => void
   'game:challenge': () => void
 }
 

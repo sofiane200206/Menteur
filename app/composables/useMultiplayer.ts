@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client'
-import type { Card, Rank } from '~/types/game'
+import type { Card, CardType } from '~/types/game'
+import { CARD_ORDER, getNextCardType } from '~/types/game'
 
 interface Room {
   id: string
@@ -25,10 +26,10 @@ interface PublicGameState {
   players: { id: string; name: string; cardCount: number; isCurrentTurn: boolean; isConnected: boolean }[]
   currentPlayerIndex: number
   pileCount: number
-  currentRank: Rank | null
+  currentCardType: CardType | null
   lastPlay: {
     cardCount: number
-    claimedRank: Rank
+    claimedType: CardType
     playerId: string
     cards?: Card[]
   } | null
@@ -160,8 +161,8 @@ export function useMultiplayer() {
   }
 
   // Jouer des cartes
-  function playCards(cardIds: string[], claimedRank: Rank) {
-    socket.value?.emit('game:playCards', { cardIds, claimedRank })
+  function playCards(cardIds: string[], claimedType: CardType) {
+    socket.value?.emit('game:playCards', { cardIds, claimedType })
   }
 
   // Challenger
@@ -200,12 +201,9 @@ export function useMultiplayer() {
     return room.value.hostId === myId.value
   })
 
-  // Rang attendu
-  const expectedRank = computed((): Rank => {
-    if (!gameState.value?.currentRank) return 'A'
-    const RANKS: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-    const index = RANKS.indexOf(gameState.value.currentRank)
-    return RANKS[(index + 1) % RANKS.length] ?? 'A'
+  // Type attendu
+  const expectedType = computed((): CardType => {
+    return getNextCardType(gameState.value?.currentCardType ?? null)
   })
 
   return {
@@ -218,7 +216,7 @@ export function useMultiplayer() {
     error,
     isMyTurn,
     isHost,
-    expectedRank,
+    expectedType,
     connect,
     createRoom,
     joinRoom,
