@@ -76,11 +76,24 @@ function getPublicGameState(room) {
 }
 
 async function start() {
-  // Importer l'app Nitro buildée
-  const { handler } = await import('./.output/server/index.mjs')
+  // Définir le port AVANT d'importer Nitro pour éviter qu'il écoute
+  const port = process.env.PORT || 10000
   
-  // Créer le serveur HTTP
-  const httpServer = createServer(handler)
+  // Importer le handler Nitro (pas le serveur complet)
+  const nitroApp = await import('./.output/server/index.mjs')
+  const handler = nitroApp.handler || nitroApp.default || nitroApp
+  
+  // Créer notre propre serveur HTTP
+  const httpServer = createServer(async (req, res) => {
+    // Laisser Nitro gérer les requêtes HTTP normales
+    try {
+      await handler(req, res)
+    } catch (err) {
+      console.error('Handler error:', err)
+      res.statusCode = 500
+      res.end('Internal Server Error')
+    }
+  })
   
   // Attacher Socket.IO au même serveur
   const io = new Server(httpServer, {
