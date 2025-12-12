@@ -5,14 +5,10 @@ RUN corepack enable
 
 WORKDIR /app
 
-# Installer les dépendances
-FROM base AS deps
+# Build stage - installer toutes les deps (y compris devDeps pour le build)
+FROM base AS builder
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
-
-# Build
-FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
 
